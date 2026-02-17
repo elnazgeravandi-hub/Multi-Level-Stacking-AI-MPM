@@ -1,0 +1,4 @@
+{
+    "description": "Feature list for G1 (all layers except ID/Label/block_id)",
+    "exclude_columns": ["pointid", "x", "y", "Label", "block_id"]
+}

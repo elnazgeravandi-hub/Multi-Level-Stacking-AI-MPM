@@ -1,0 +1,15 @@
+{
+    "description": "Fixed feature list for G2 (Above_0_6)",
+    "features": [
+        "F1_clr",
+        "F4_clr",
+        "Fe_oxide",
+        "Phylic",
+        "argillic",
+        "Microdiorite_Micromonzonite",
+        "Granodiorite",
+        "NS",
+        "Fault_Densi",
+        "NWSE"
+    ]
+}

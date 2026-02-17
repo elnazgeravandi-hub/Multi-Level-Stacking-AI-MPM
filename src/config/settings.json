@@ -1,0 +1,7 @@
+{
+    "block_size": 5000,
+    "n_splits": 5,
+    "train_ratio": 0.7,
+    "threshold": 0.5,
+    "random_state": 42
+}
