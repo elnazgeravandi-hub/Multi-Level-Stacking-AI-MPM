@@ -1,1 +1,1 @@
-from .ridge_level1 import RidgeLevel1
+from .ridge_model import RidgeLevel1
