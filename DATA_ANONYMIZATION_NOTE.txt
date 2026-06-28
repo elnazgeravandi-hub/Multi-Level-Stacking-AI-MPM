@@ -1,0 +1,8 @@
+DATA ANONYMIZATION NOTE
+=======================
+
+The released x and y fields are anonymized relative local coordinates.
+They do not represent real-world coordinates.
+The original CRS, UTM zone, coordinate origin, and raw mineral occurrence coordinates are not released.
+The anonymized coordinates preserve the internal spatial configuration required for spatial block validation.
+Raw GIS layers and original occurrence locations should not be uploaded to this public repository.
