@@ -3,11 +3,13 @@ from sklearn.ensemble import RandomForestClassifier
 
 class RFLevel0:
     """
-    Random Forest model for Level-0 stacking.
-    This class handles:
-        - model creation
-        - training
-        - prediction
+    Random Forest Level-0 base learner.
+
+    This wrapper provides a unified interface for the stacking pipeline:
+    - fit()
+    - predict_proba()
+    - predict()
+    - feature_importance()
     """
 
     def __init__(self, random_state=42):
@@ -18,24 +20,24 @@ class RFLevel0:
             min_samples_leaf=5,
             n_jobs=-1,
             oob_score=True,
-            random_state=random_state
+            random_state=random_state,
         )
 
     def fit(self, X_train, y_train):
-        """Train the RF model."""
+        """Train the Random Forest model."""
         self.model.fit(X_train, y_train)
-        return self.model.oob_score_
+        return self
 
     def predict_proba(self, X):
-        """Return probability predictions."""
+        """Return probability predictions for the positive class."""
         return self.model.predict_proba(X)[:, 1]
 
     def predict(self, X, threshold=0.5):
-        """Return binary predictions."""
+        """Return binary predictions using a probability threshold."""
         proba = self.predict_proba(X)
         return (proba >= threshold).astype(int)
 
     def feature_importance(self, feature_names):
-        """Return feature importance as a dictionary."""
+        """Return feature importance values as a dictionary."""
         importances = self.model.feature_importances_
         return dict(zip(feature_names, importances))
