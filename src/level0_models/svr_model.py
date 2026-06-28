@@ -1,49 +1,44 @@
 import numpy as np
-from sklearn.svm import SVR
+
+from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVR
 
 
 class SVRLevel0:
     """
-    SVR Level-0 model.
-    Unified logic with RF, XGB, LGBM:
-        - fit()
-        - predict_proba()  -> returns clipped [0,1] scores
-        - predict()        -> threshold-based classification
+    Support Vector Regression Level-0 base learner.
+
+    SVR is used as a regression-style base learner and its outputs are
+    clipped to the [0, 1] interval to provide probability-like scores.
     """
 
     def __init__(self):
-        # Default SVR parameters (you can tune later)
-        self.model = SVR(kernel="linear", C=0.01, epsilon=0.1)
-        self.scaler = StandardScaler()
+        self.model = Pipeline(
+            steps=[
+                ("scaler", StandardScaler()),
+                (
+                    "svr",
+                    SVR(
+                        kernel="linear",
+                        C=0.01,
+                        epsilon=0.2,
+                    ),
+                ),
+            ]
+        )
 
     def fit(self, X_train, y_train):
-        """
-        Fit scaler + SVR model.
-        """
-        X_train_sc = self.scaler.fit_transform(X_train)
-        self.model.fit(X_train_sc, y_train)
+        """Train the SVR model."""
+        self.model.fit(X_train, y_train)
+        return self
 
     def predict_proba(self, X):
-        """
-        Return probability-like scores in [0,1].
-        SVR outputs continuous values → clip to [0,1].
-        """
-        X_sc = self.scaler.transform(X)
-        preds = self.model.predict(X_sc)
-        preds_clip = np.clip(preds, 0.0, 1.0)
-        return preds_clip
+        """Return probability-like predictions for the positive class."""
+        proba = self.model.predict(X)
+        return np.clip(proba, 0.0, 1.0)
 
     def predict(self, X, threshold=0.5):
-        """
-        Convert clipped scores to binary predictions.
-        """
+        """Return binary predictions using a probability threshold."""
         proba = self.predict_proba(X)
         return (proba >= threshold).astype(int)
-
-    def feature_importance(self, feature_names):
-        """
-        SVR has no native feature importance.
-        We return zeros to keep the interface consistent.
-        """
-        return {f: 0.0 for f in feature_names}
