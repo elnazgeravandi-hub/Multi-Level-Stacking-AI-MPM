@@ -1,44 +1,40 @@
 import numpy as np
-from lightgbm import LGBMClassifier
+from lightgbm import LGBMRegressor
 
 
 class LGBMMetaModel:
     """
-    Final Level-2 meta-model using LightGBM.
-    Input: stacked predictions from Level-1.
-    Output: final probability prediction in [0,1].
+    LightGBM Level-2 meta-learner.
+
+    This model receives Level-1 Ridge outputs and produces the final
+    probability-like prospectivity score.
     """
 
     def __init__(self, random_state=42):
-        self.model = LGBMClassifier(
-            n_estimators=600,
-            learning_rate=0.03,
-            max_depth=4,
-            num_leaves=24,
-            min_child_samples=40,
-            subsample=0.8,
+        self.model = LGBMRegressor(
+            n_estimators=200,
+            learning_rate=0.05,
+            max_depth=3,
+            subsample=0.7,
             colsample_bytree=0.8,
-            reg_alpha=1.0,
-            reg_lambda=2.0,
-            objective="binary",
+            reg_lambda=4.0,
+            objective="regression",
             n_jobs=-1,
-            random_state=random_state
+            random_state=random_state,
+            verbose=-1,
         )
 
-    def fit(self, Z_train, y):
-        """Train Level-2 LightGBM classifier."""
-        self.model.fit(Z_train, y)
+    def fit(self, X_train, y_train):
+        """Train the Level-2 LightGBM meta-learner."""
+        self.model.fit(X_train, y_train)
+        return self
 
-    def predict_proba(self, Z):
-        """Return probability predictions for the positive class."""
-        return self.model.predict_proba(Z)[:, 1]
+    def predict_proba(self, X):
+        """Return clipped probability-like predictions."""
+        proba = self.model.predict(X)
+        return np.clip(proba, 0.0, 1.0)
 
-    def predict(self, Z, threshold=0.5):
-        """Return binary predictions based on threshold."""
-        proba = self.predict_proba(Z)
+    def predict(self, X, threshold=0.5):
+        """Return binary predictions using a probability threshold."""
+        proba = self.predict_proba(X)
         return (proba >= threshold).astype(int)
-
-    def feature_importance(self, feature_names):
-        """Return feature importance as a dict."""
-        importances = self.model.feature_importances_
-        return dict(zip(feature_names, importances))
