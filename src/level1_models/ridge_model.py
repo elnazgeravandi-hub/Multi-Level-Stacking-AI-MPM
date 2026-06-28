@@ -4,21 +4,31 @@ from sklearn.linear_model import Ridge
 
 class RidgeLevel1:
     """
-    Level-1 meta-model using Ridge Regression.
-    Input: stacked predictions of Level-0 models.
-    Output: meta-prediction (continuous, probability-like).
+    Ridge regression Level-1 meta-learner.
+
+    This model receives out-of-fold Level-0 predictions and produces
+    an intermediate probability-like score for the Level-2 meta-learner.
     """
 
-    def __init__(self, alpha=1.0, random_state=42):
-        self.model = Ridge(alpha=alpha, random_state=random_state)
+    def __init__(self, alpha=10.0, random_state=42):
+        self.alpha = alpha
+        self.random_state = random_state
+        self.model = Ridge(
+            alpha=alpha,
+            random_state=random_state,
+        )
 
-    def fit(self, X_meta, y):
-        self.model.fit(X_meta, y)
+    def fit(self, X_train, y_train):
+        """Train the Ridge meta-learner."""
+        self.model.fit(X_train, y_train)
+        return self
 
-    def predict_proba(self, X_meta):
-        preds = self.model.predict(X_meta)
-        return np.clip(preds, 0.0, 1.0)
+    def predict_proba(self, X):
+        """Return clipped probability-like predictions."""
+        proba = self.model.predict(X)
+        return np.clip(proba, 0.0, 1.0)
 
-    def predict(self, X_meta, threshold=0.5):
-        proba = self.predict_proba(X_meta)
+    def predict(self, X, threshold=0.5):
+        """Return binary predictions using a probability threshold."""
+        proba = self.predict_proba(X)
         return (proba >= threshold).astype(int)
