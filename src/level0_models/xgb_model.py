@@ -1,18 +1,18 @@
-from xgboost import XGBClassifier
+import numpy as np
+from xgboost import XGBRegressor
 
 
 class XGBLevel0:
     """
-    XGBoost model for Level-0 stacking.
-    Handles:
-        - model creation
-        - training
-        - prediction
+    XGBoost Level-0 base learner.
+
+    The model is implemented with a binary logistic objective and returns
+    probability-like outputs for the positive class.
     """
 
     def __init__(self, random_state=42):
-        self.model = XGBClassifier(
-            n_estimators=300,
+        self.model = XGBRegressor(
+            n_estimators=200,
             max_depth=3,
             learning_rate=0.05,
             subsample=0.7,
@@ -20,40 +20,26 @@ class XGBLevel0:
             reg_lambda=5.0,
             reg_alpha=2.0,
             objective="binary:logistic",
-            eval_metric="logloss",
             n_jobs=-1,
-            random_state=random_state
+            random_state=random_state,
         )
 
     def fit(self, X_train, y_train):
-        """Train the XGB model."""
+        """Train the XGBoost model."""
         self.model.fit(X_train, y_train)
+        return self
 
     def predict_proba(self, X):
-        """Return probability predictions."""
-        return self.model.predict_proba(X)[:, 1]
+        """Return probability-like predictions for the positive class."""
+        proba = self.model.predict(X)
+        return np.clip(proba, 0.0, 1.0)
 
     def predict(self, X, threshold=0.5):
-        """Return binary predictions."""
+        """Return binary predictions using a probability threshold."""
         proba = self.predict_proba(X)
         return (proba >= threshold).astype(int)
 
-    def feature_importance_gain(self, feature_names):
-        """
-        Return gain-based feature importance as a dict.
-        """
-        booster = self.model.get_booster()
-        gain_dict = booster.get_score(importance_type="gain")
-
-        # Map f0 -> feature_names[0]
-        mapped = {}
-        for k, v in gain_dict.items():
-            idx = int(k.replace("f", ""))
-            mapped[feature_names[idx]] = float(v)
-
-        # Ensure all features appear
-        for f in feature_names:
-            if f not in mapped:
-                mapped[f] = 0.0
-
-        return mapped
+    def feature_importance(self, feature_names):
+        """Return feature importance values as a dictionary."""
+        importances = self.model.feature_importances_
+        return dict(zip(feature_names, importances))
