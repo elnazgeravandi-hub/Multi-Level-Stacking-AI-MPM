@@ -1,13 +1,32 @@
 # DATA ANONYMIZATION NOTE
 
-The datasets released in this repository are anonymized tabular modeling datasets prepared to support verification and reproducibility of the machine-learning workflow described in the manuscript.
+The datasets released in this repository are anonymized demonstration datasets prepared to support reviewer verification and reproducibility of the Python modeling workflow described in the manuscript.
 
-Because the original geospatial datasets contain sensitive mineral occurrence and non-occurrence locations, the exact UTM coordinates, CRS information, UTM zone, coordinate origin, raw occurrence/non-occurrence coordinates, original spatial block codes, and raw GIS layers are not publicly released.
+The original geospatial datasets used in the study contain sensitive information related to mineral occurrence and non-occurrence locations. Therefore, the original datasets are not publicly released.
 
-The released x and y fields are anonymized relative local coordinates. They do not represent real-world coordinates, UTM coordinates, or the original study-area coordinate network.
+The released datasets do not disclose:
 
-Spatial validation is preserved using the provided spatial_block_id field. This field is an anonymized grouping identifier used by the Python scripts for deterministic spatial block splitting and GroupKFold validation.
+* original mineral occurrence coordinates;
+* original non-occurrence coordinates;
+* exact study-area coordinates;
+* original UTM coordinates;
+* original CRS information;
+* original UTM zone;
+* original coordinate origin;
+* raw GIS layers;
+* confidential final prospectivity outputs.
 
-The spatial_block_id field must not be used as a predictor variable.
+The public `x` and `y` fields are anonymized relative local coordinates. They do not represent real-world coordinates, real UTM coordinates, or the original study-area coordinate network.
 
-The public datasets allow reviewers and readers to run the G1 and G2 workflows, inspect the multi-level stacking implementation, reproduce the code-execution procedure, and generate local outputs without disclosing sensitive mineral-location information.
+The provided `spatial_block_id` field is an anonymized spatial grouping identifier. It is used by the Python scripts for spatial block splitting and spatially constrained validation. This field must not be used as a predictor variable.
+
+The public datasets are intended to allow reviewers and readers to:
+
+* run the G1 and G2 workflows;
+* inspect the multi-level stacking implementation;
+* verify that the Python scripts execute correctly;
+* generate local outputs with the same structure as the manuscript outputs.
+
+The outputs generated from the public anonymized datasets are demonstration outputs only. They should not be interpreted as the final confidential prospectivity maps, final GIS outputs, or final numerical results reported in the manuscript.
+
+This anonymized data-release strategy supports computational reproducibility while protecting sensitive mineral-location information.
