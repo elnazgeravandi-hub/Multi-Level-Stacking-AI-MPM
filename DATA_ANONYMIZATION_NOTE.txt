@@ -1,16 +1,13 @@
-DATA ANONYMIZATION NOTE
-=======================
+# DATA ANONYMIZATION NOTE
 
-The datasets released in this repository are anonymized demonstration datasets prepared for workflow verification and code execution.
+The datasets released in this repository are anonymized tabular modeling datasets prepared to support verification and reproducibility of the machine-learning workflow described in the manuscript.
 
-They are not the original geospatial datasets used to generate the final manuscript results.
+Because the original geospatial datasets contain sensitive mineral occurrence and non-occurrence locations, the exact UTM coordinates, CRS information, UTM zone, coordinate origin, raw occurrence/non-occurrence coordinates, original spatial block codes, and raw GIS layers are not publicly released.
 
 The released x and y fields are anonymized relative local coordinates. They do not represent real-world coordinates, UTM coordinates, or the original study-area coordinate network.
 
-The original CRS, UTM zone, coordinate origin, raw mineral occurrence and non-occurrence coordinates, original spatial block codes, and raw GIS layers are not released.
-
-Spatial validation is preserved using the provided spatial_block_id field. This field is an anonymized grouping identifier used by the Python scripts for spatial block splitting.
+Spatial validation is preserved using the provided spatial_block_id field. This field is an anonymized grouping identifier used by the Python scripts for deterministic spatial block splitting and GroupKFold validation.
 
 The spatial_block_id field must not be used as a predictor variable.
 
-The public datasets are intended to allow reviewers and readers to run the G1 and G2 workflows, inspect the multi-level stacking implementation, and generate example outputs locally without disclosing sensitive mineral-location information.
+The public datasets allow reviewers and readers to run the G1 and G2 workflows, inspect the multi-level stacking implementation, reproduce the code-execution procedure, and generate local outputs without disclosing sensitive mineral-location information.
