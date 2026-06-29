@@ -31,12 +31,31 @@ data/
 * `y`: anonymized relative y-coordinate
 * `Label`: binary class label
 * all evidential predictor variables used in the G1 modeling scenario
+* `spatial_block_id`: anonymized spatial grouping variable used to reproduce the spatial block train/validation split
+
+The G1 predictor variables are:
+
+* `F1_clr`
+* `F2_clr`
+* `F4_clr`
+* `Propylitic`
+* `Fe_oxide`
+* `Phylic`
+* `advance argillic`
+* `argillic`
+* `Microdiorite_Micromonzonite`
+* `Granodiorite`
+* `NS`
+* `EW`
+* `NWSE`
+* `NESW`
 
 `G1/testnew.xlsx` contains:
 
 * `pointid`
 * anonymized relative `x` and `y` coordinates
-* all G1 predictor variables required for spatial prediction
+* the same G1 predictor variables required for spatial prediction
+* `spatial_block_id`: anonymized spatial grouping variable used for reproducible spatial block assignment
 
 ### G2
 
