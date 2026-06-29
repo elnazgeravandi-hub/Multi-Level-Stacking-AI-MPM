@@ -4,16 +4,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+from sklearn.base import clone
 from sklearn.model_selection import GroupKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-
 from sklearn.ensemble import RandomForestClassifier
-from lightgbm import LGBMRegressor
-from xgboost import XGBRegressor
+from sklearn.linear_model import Ridge
 from sklearn.svm import SVR
 from sklearn.neural_network import MLPRegressor
-
 from sklearn.metrics import (
     roc_auc_score,
     roc_curve,
@@ -24,6 +22,9 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
 )
+
+from lightgbm import LGBMRegressor
+from xgboost import XGBRegressor
 
 
 def make_blocks(x, y, block_size=5000):
@@ -96,6 +97,7 @@ def get_multistack_models(seed=42):
 def predict_score(model, X):
     if hasattr(model, "predict_proba"):
         return model.predict_proba(X)[:, 1]
+
     pred = model.predict(X)
     return np.clip(pred, 0.0, 1.0)
 
@@ -119,7 +121,7 @@ def run_stacking(
     test_df = pd.read_excel(test_path)
 
     print("Train shape:", train_df.shape)
-    print("Test  shape:", test_df.shape)
+    print("Test shape:", test_df.shape)
 
     id_cols = ["pointid", "x", "y"]
     target_col = "Label"
@@ -128,7 +130,9 @@ def run_stacking(
         excluded = id_cols + [target_col, "block_id", "spatial_block_id"]
         feature_cols = [c for c in train_df.columns if c not in excluded]
 
-    missing_train = [c for c in feature_cols + id_cols + [target_col] if c not in train_df.columns]
+    missing_train = [
+        c for c in feature_cols + id_cols + [target_col] if c not in train_df.columns
+    ]
     missing_test = [c for c in feature_cols + id_cols if c not in test_df.columns]
 
     print("Missing in TRAIN:", missing_train)
@@ -136,6 +140,7 @@ def run_stacking(
 
     if missing_train:
         raise ValueError(f"Missing columns in TRAIN: {missing_train}")
+
     if missing_test:
         raise ValueError(f"Missing columns in TEST: {missing_test}")
 
@@ -161,10 +166,12 @@ def run_stacking(
         )
 
     unique_blocks = train_df["block_id"].unique()
+
     rng = np.random.RandomState(random_state)
     rng.shuffle(unique_blocks)
 
     n_train_blocks = int(len(unique_blocks) * train_ratio)
+
     train_blocks = unique_blocks[:n_train_blocks]
     val_blocks = unique_blocks[n_train_blocks:]
 
@@ -173,7 +180,7 @@ def run_stacking(
 
     print("Blocks total:", len(unique_blocks))
     print("Blocks train:", len(train_blocks))
-    print("Blocks val  :", len(val_blocks))
+    print("Blocks val :", len(val_blocks))
 
     X_train = train_df.loc[train_mask, feature_cols].values
     y_train = train_df.loc[train_mask, target_col].astype(int).values
@@ -185,71 +192,116 @@ def run_stacking(
     X_test = test_df[feature_cols].values
 
     print("Spatial train:", X_train.shape, y_train.shape)
-    print("Spatial val  :", X_val.shape, y_val.shape)
+    print("Spatial val :", X_val.shape, y_val.shape)
     print("Class dist (val):", dict(pd.Series(y_val).value_counts()))
 
     seed = random_state
+
     base_models = get_multistack_models(seed=seed)
     base_names = list(base_models.keys())
 
     print("Base models:", base_names)
 
     effective_splits = min(n_splits, len(np.unique(g_train)))
+
     if effective_splits < 2:
         raise ValueError("At least two unique training spatial blocks are required.")
 
     gkf = GroupKFold(n_splits=effective_splits)
+
     z_train_oof = np.zeros((X_train.shape[0], len(base_names)), dtype=float)
 
-    for fold, (tr_idx, va_idx) in enumerate(gkf.split(X_train, y_train, groups=g_train), 1):
+    for fold, (tr_idx, va_idx) in enumerate(
+        gkf.split(X_train, y_train, groups=g_train),
+        1,
+    ):
         X_tr, y_tr = X_train[tr_idx], y_train[tr_idx]
         X_va = X_train[va_idx]
 
         for j, name in enumerate(base_names):
-            model = base_models[name]
+            model = clone(base_models[name])
             model.fit(X_tr, y_tr)
             z_train_oof[va_idx, j] = predict_score(model, X_va)
 
         print(f"Fold {fold} done.")
 
-    print("OOF matrix:", z_train_oof.shape)
+    print("Level-0 OOF matrix:", z_train_oof.shape)
 
-    meta = XGBRegressor(
-        n_estimators=800,
-        max_depth=3,
-        learning_rate=0.03,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        reg_lambda=6.0,
-        reg_alpha=2.0,
-        objective="binary:logistic",
-        n_jobs=-1,
+    # ---------------------------------------------------------------------
+    # Level-1 meta-learner: Ridge Regression
+    # ---------------------------------------------------------------------
+    level1_ridge = Ridge(
+        alpha=10.0,
         random_state=seed,
     )
-    meta.fit(z_train_oof, y_train)
+
+    level1_ridge.fit(z_train_oof, y_train)
+
+    z_train_level1 = np.clip(
+        level1_ridge.predict(z_train_oof),
+        0.0,
+        1.0,
+    ).reshape(-1, 1)
+
+    print("Level-1 Ridge output matrix:", z_train_level1.shape)
+
+    # ---------------------------------------------------------------------
+    # Level-2 meta-learner: LightGBM
+    # ---------------------------------------------------------------------
+    level2_lgbm = LGBMRegressor(
+        n_estimators=200,
+        learning_rate=0.05,
+        max_depth=3,
+        subsample=0.7,
+        colsample_bytree=0.8,
+        reg_lambda=4.0,
+        objective="regression",
+        n_jobs=-1,
+        random_state=seed,
+        verbosity=-1,
+    )
+
+    level2_lgbm.fit(z_train_level1, y_train)
 
     z_val = np.zeros((X_val.shape[0], len(base_names)), dtype=float)
     z_test = np.zeros((X_test.shape[0], len(base_names)), dtype=float)
 
     for j, name in enumerate(base_names):
-        model = base_models[name]
+        model = clone(base_models[name])
         model.fit(X_train, y_train)
+
         z_val[:, j] = predict_score(model, X_val)
         z_test[:, j] = predict_score(model, X_test)
 
-    val_prob = np.clip(meta.predict(z_val), 0.0, 1.0)
-    test_prob = np.clip(meta.predict(z_test), 0.0, 1.0)
+    z_val_level1 = np.clip(
+        level1_ridge.predict(z_val),
+        0.0,
+        1.0,
+    ).reshape(-1, 1)
+
+    z_test_level1 = np.clip(
+        level1_ridge.predict(z_test),
+        0.0,
+        1.0,
+    ).reshape(-1, 1)
+
+    val_prob = np.clip(level2_lgbm.predict(z_val_level1), 0.0, 1.0)
+    test_prob = np.clip(level2_lgbm.predict(z_test_level1), 0.0, 1.0)
 
     val_pred = (val_prob >= threshold).astype(int)
 
     # Save validation probabilities for threshold-sensitivity analysis
-    validation_predictions = pd.DataFrame({
-        "y_true": y_val,
-        "y_prob": val_prob,
-        "y_pred_thr_0_5": val_pred,
-    })
+    validation_predictions = pd.DataFrame(
+        {
+            "y_true": y_val,
+            "y_prob": val_prob,
+            "y_pred_thr_0_5": val_pred,
+        }
+    )
+
     val_pred_path = output_dir / f"MultiStack_{group_name}_validation_predictions.csv"
     validation_predictions.to_csv(val_pred_path, index=False)
+
     print(f"Saved validation predictions: {val_pred_path}")
 
     val_auc = roc_auc_score(y_val, val_prob)
@@ -265,17 +317,19 @@ def run_stacking(
     print("F1 (deposit=1):", round(f1, 4))
 
     cm = confusion_matrix(y_val, val_pred)
+
     print("\nConfusion matrix (thr=0.5):")
     print(cm)
 
     report = classification_report(y_val, val_pred, zero_division=0)
+
     print("\nClassification report (thr=0.5):")
     print(report)
 
     metrics_df = pd.DataFrame(
         [
             {
-                "Model": "MultiStack(Level0->MetaXGB)",
+                "Model": "MultiStack(Level0->Ridge->LightGBM)",
                 "Group": group_name,
                 "Split": "SpatialBlock",
                 "block_size": block_size,
@@ -297,13 +351,16 @@ def run_stacking(
 
     metrics_path = output_dir / f"MultiStack_{group_name}_spatial_metrics.csv"
     metrics_df.to_csv(metrics_path, index=False, encoding="utf-8-sig")
+
     print("\nSaved metrics:", metrics_path)
 
     report_path = output_dir / f"MultiStack_{group_name}_classification_report.txt"
     report_path.write_text(report, encoding="utf-8")
+
     print("Saved report:", report_path)
 
     fpr, tpr, _ = roc_curve(y_val, val_prob)
+
     plt.figure(figsize=(5, 5))
     plt.plot(fpr, tpr, label=f"AUC = {val_auc:.4f}")
     plt.plot([0, 1], [0, 1], "k--")
@@ -316,14 +373,17 @@ def run_stacking(
     roc_path = output_dir / f"ROC_MultiStack_{group_name}_spatial.png"
     plt.savefig(roc_path, dpi=300)
     plt.close()
+
     print("ROC saved:", roc_path)
 
     test_out = test_df.copy()
+
     test_out["Multi_Prob"] = test_prob
     test_out["Multi_Class"] = (test_prob >= threshold).astype(int)
 
     bins = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
     labels = [1, 2, 3, 4, 5]
+
     test_out["Multi_Class5"] = pd.cut(
         test_out["Multi_Prob"],
         bins=bins,
@@ -335,7 +395,9 @@ def run_stacking(
     test_out.to_csv(full_test_path, index=False, encoding="utf-8-sig")
 
     arc_test_path = output_dir / f"MultiStack_{group_name}_For_ArcMap_spatial.csv"
-    test_out[["pointid", "x", "y", "Multi_Prob", "Multi_Class", "Multi_Class5"]].to_csv(
+    test_out[
+        ["pointid", "x", "y", "Multi_Prob", "Multi_Class", "Multi_Class5"]
+    ].to_csv(
         arc_test_path,
         index=False,
         encoding="utf-8-sig",
@@ -344,7 +406,12 @@ def run_stacking(
     print("\nSaved outputs:")
     print("- Full:", full_test_path)
     print("- Arc :", arc_test_path)
-    print("Arc shape:", test_out[["pointid", "x", "y", "Multi_Prob", "Multi_Class", "Multi_Class5"]].shape)
+    print(
+        "Arc shape:",
+        test_out[
+            ["pointid", "x", "y", "Multi_Prob", "Multi_Class", "Multi_Class5"]
+        ].shape,
+    )
 
     return {
         "val_auc": val_auc,
