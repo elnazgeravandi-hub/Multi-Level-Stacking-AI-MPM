@@ -6,6 +6,24 @@ import pandas as pd
 from stacking_pipeline import run_stacking
 
 
+G1_FEATURES = [
+    "F1_clr",
+    "F2_clr",
+    "F4_clr",
+    "Propylitic",
+    "Fe_oxide",
+    "Phylic",
+    "advance argillic",
+    "argillic",
+    "Microdiorite_Micromonzonite",
+    "Granodiorite",
+    "NS",
+    "EW",
+    "NWSE",
+    "NESW",
+]
+
+
 G2_FEATURES = [
     "F1_clr",
     "F4_clr",
@@ -37,7 +55,7 @@ def get_config(group_name):
     output_dir = repo_root / "results" / group_name
 
     if group_name == "G1":
-        feature_cols = None
+        feature_cols = G1_FEATURES
     else:
         feature_cols = G2_FEATURES
 
@@ -50,7 +68,7 @@ def infer_feature_cols_if_needed(train_path, feature_cols):
 
     train_df = pd.read_excel(train_path)
 
-    excluded_cols = ["pointid", "x", "y", "Label", "block_id"]
+    excluded_cols = ["pointid", "x", "y", "Label", "block_id", "spatial_block_id"]
     inferred_features = [c for c in train_df.columns if c not in excluded_cols]
 
     print(f"[G1] Auto-detected {len(inferred_features)} predictor variables.")
