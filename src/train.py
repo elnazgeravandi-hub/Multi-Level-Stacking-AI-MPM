@@ -49,6 +49,7 @@ def infer_feature_cols_if_needed(train_path, feature_cols):
         return feature_cols
 
     train_df = pd.read_excel(train_path)
+
     excluded_cols = ["pointid", "x", "y", "Label", "block_id"]
     inferred_features = [c for c in train_df.columns if c not in excluded_cols]
 
