@@ -145,8 +145,8 @@ def run_stacking(
         raise ValueError(f"Missing columns in TEST: {missing_test}")
 
     # Use preserved spatial_block_id when available.
-    # This keeps the original spatial-block validation split reproducible
-    # after anonymizing x/y into a relative local coordinate system.
+    # This keeps spatial block validation reproducible after anonymizing x/y
+    # into a relative local coordinate system.
     if "spatial_block_id" in train_df.columns:
         train_df["block_id"] = train_df["spatial_block_id"].astype(int)
     elif "block_id" not in train_df.columns:
@@ -290,7 +290,6 @@ def run_stacking(
 
     val_pred = (val_prob >= threshold).astype(int)
 
-    # Save validation probabilities for threshold-sensitivity analysis
     validation_predictions = pd.DataFrame(
         {
             "y_true": y_val,
