@@ -1,8 +1,16 @@
 DATA ANONYMIZATION NOTE
 =======================
 
-The released x and y fields are anonymized relative local coordinates.
-They do not represent real-world coordinates.
-The original CRS, UTM zone, coordinate origin, and raw mineral occurrence coordinates are not released.
-The anonymized coordinates preserve the internal spatial configuration required for spatial block validation.
-Raw GIS layers and original occurrence locations should not be uploaded to this public repository.
+The datasets released in this repository are anonymized demonstration datasets prepared for workflow verification and code execution.
+
+They are not the original geospatial datasets used to generate the final manuscript results.
+
+The released x and y fields are anonymized relative local coordinates. They do not represent real-world coordinates, UTM coordinates, or the original study-area coordinate network.
+
+The original CRS, UTM zone, coordinate origin, raw mineral occurrence and non-occurrence coordinates, original spatial block codes, and raw GIS layers are not released.
+
+Spatial validation is preserved using the provided spatial_block_id field. This field is an anonymized grouping identifier used by the Python scripts for spatial block splitting.
+
+The spatial_block_id field must not be used as a predictor variable.
+
+The public datasets are intended to allow reviewers and readers to run the G1 and G2 workflows, inspect the multi-level stacking implementation, and generate example outputs locally without disclosing sensitive mineral-location information.
