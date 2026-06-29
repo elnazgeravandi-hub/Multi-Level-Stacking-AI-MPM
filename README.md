@@ -2,42 +2,66 @@
 
 This repository provides the Python implementation of a multi-level stacking ensemble workflow for AI-based mineral prospectivity mapping.
 
-The repository was prepared as part of the reproducibility and workflow-verification materials associated with the manuscript:
+The repository was prepared as a reproducibility and workflow-verification supplement for the manuscript:
 
 **A Multi-Level Stacking Ensemble Architecture: Advantages of Random Forests, Extreme Gradient Boosting (XGBoost), and Light Gradient Boosting Machine (LightGBM) for Porphyry-related AI-based Mineral Prospectivity Mapping**
 
 ## Repository purpose
 
-This repository is intended to allow reviewers and readers to inspect and run the modeling workflow using anonymized demonstration datasets.
+This repository allows reviewers and readers to run the Python workflow using anonymized demonstration datasets.
 
-The public repository supports:
+The purpose of the repository is to support reproducibility of the computational workflow, not to disclose the original confidential geospatial datasets.
+
+The repository supports:
 
 * execution of the Python modeling pipeline;
-* verification of the G1 and G2 modeling workflow;
+* verification of the G1 and G2 modeling workflows;
 * spatial block-based train/validation partitioning;
 * training of Level-0 base machine-learning models;
-* generation of out-of-fold predictions using spatial GroupKFold validation;
+* generation of spatially constrained out-of-fold predictions;
 * implementation of the multi-level stacking ensemble model;
 * calculation of validation metrics;
 * generation of example GIS-ready output tables.
 
+The public datasets are demonstration datasets. They preserve the structure required to run the workflow, but they are not the original datasets used to produce the final manuscript results.
+
 ## Data availability and anonymization
 
-The original geospatial datasets used in the manuscript contain sensitive information related to mineral occurrence and non-occurrence locations and are not publicly released. To protect these locations, the public repository includes anonymized demonstration datasets.
+The original geospatial datasets used in the manuscript contain sensitive information related to mineral occurrence and non-occurrence locations. Therefore, the exact original datasets are not publicly released.
 
-These datasets preserve the tabular structure required for running the scripts but do not represent the exact study area or the original coordinate network. The public `x` and `y` fields are expressed in a relative local coordinate system and should not be interpreted as real UTM coordinates.
+To support reproducibility while protecting sensitive mineral-location information, this repository provides anonymized demonstration datasets.
 
-The original CRS, UTM zone, coordinate origin, raw mineral occurrence coordinates, and original GIS layers are not released.
+The released datasets do not disclose:
 
-Spatial validation is performed using the provided `spatial_block_id` field rather than recomputing spatial blocks from the anonymized coordinates.
+* original mineral occurrence coordinates;
+* original non-occurrence coordinates;
+* the exact study-area coordinate network;
+* original UTM coordinates;
+* original CRS information;
+* original UTM zone;
+* original coordinate origin;
+* raw GIS layers;
+* confidential final prospectivity outputs.
+
+The public `x` and `y` fields are expressed in a relative local coordinate system. They should not be interpreted as real-world coordinates or real UTM coordinates.
+
+Spatial validation is preserved using the provided `spatial_block_id` field. This field is an anonymized spatial grouping identifier and is used only for spatial block splitting and spatially constrained validation. It must not be used as a predictor variable.
+
+## Demonstration datasets
+
+The demonstration datasets are designed to allow the scripts to run and produce outputs with the same structure as those reported in the manuscript.
+
+However, outputs generated from these public datasets are demonstration outputs only. They should not be interpreted as the final confidential prospectivity results of the study.
+
+The goal is to verify that the computational workflow is executable and reproducible under an anonymized data-release setting.
 
 ## Model architecture
 
-The implemented workflow uses a multi-level stacking ensemble structure.
+The implemented workflow follows a multi-level stacking ensemble structure.
 
 ### Level-0 base learners
 
-The following Level-0 base learners are used:
+The Level-0 base learners include:
 
 * Random Forest
 * LightGBM Regressor
@@ -49,13 +73,13 @@ The following Level-0 base learners are used:
 
 Spatial block identifiers are used as grouping variables.
 
-A GroupKFold procedure is used to generate spatially separated out-of-fold predictions and reduce spatial leakage.
+A spatial GroupKFold procedure is used to generate spatially constrained out-of-fold predictions and reduce spatial leakage.
 
 ### Level-1 meta-learner
 
 The Level-1 meta-learner is Ridge Regression.
 
-It receives the out-of-fold prediction matrix generated by the Level-0 base learners and produces an intermediate probability-like score.
+It receives the Level-0 out-of-fold prediction matrix and produces an intermediate probability-like score.
 
 ### Level-2 meta-learner
 
@@ -63,33 +87,25 @@ The Level-2 meta-learner is LightGBM.
 
 It receives the Level-1 Ridge output and produces the final prospectivity score.
 
-Therefore, the implemented stacking architecture is:
+Therefore, the implemented architecture is:
 
 `Level-0 base learners → Level-1 Ridge Regression → Level-2 LightGBM meta-learner`
 
-## Hyperparameter tuning and Table 3 correspondence
-
-The manuscript reports the hyperparameter-tuning and model-selection procedure in Table 3(a) and Table 3(b).
-
-Table 3(a) summarizes the final selected hyperparameter configurations used in the multi-level stacking framework. These configurations correspond to the fixed model settings implemented in `src/stacking_pipeline.py`.
-
-Table 3(b) summarizes representative five-fold spatially constrained cross-validation outcomes for final selected and alternative hyperparameter configurations of the Level-0 base learners under the G1 predictor configuration. The reported values include mean CV AUC and CV AUC standard deviation.
-
-The grid-search and five-fold CV procedure described in the manuscript was conducted within the spatially constrained training subset. Each candidate hyperparameter vector was trained on K−1 folds and evaluated on the remaining fold. Final configurations were selected based on discrimination performance, CV stability, parsimony, regularization behavior, and consistency with the multi-level stacking framework.
-
-The spatial block validation metrics reported by the executable workflow are separate from the five-fold hyperparameter-tuning CV outcomes. Therefore, Table 4 in the manuscript corresponds to spatial block validation, whereas Table 3(b) corresponds to representative grid-search CV outcomes.
-
 ## Outputs
 
-The workflow produces:
+When the workflow is executed, it generates:
 
 * validation probabilities;
 * validation performance metrics;
 * ROC curve;
+* AUC value;
+* accuracy, precision, recall, and F1-score;
 * continuous prospectivity scores;
 * binary prospectivity classes;
 * five-class prospectivity classes;
 * GIS-ready CSV output tables.
+
+These outputs are generated locally from the anonymized demonstration datasets.
 
 ## Repository structure
 
@@ -117,9 +133,7 @@ Multi-Level-Stacking-AI-MPM/
 │       └── testnew.xlsx
 │
 └── results/
-    ├── README.md
-    └── hyperparameter_tuning/
-        └── Table3b_level0_cv_summary.csv
+    └── README.md
 ```
 
 ## Installation
@@ -150,7 +164,7 @@ Optional parameters:
 python src/train.py --group G1 --threshold 0.5 --block_size 5000 --n_splits 5 --train_ratio 0.7 --seed 42
 ```
 
-The same command structure is used for both G1 and G2. The only difference is the predefined predictor-variable configuration for each group.
+The same command structure is used for both G1 and G2. The only difference is the predefined predictor-variable configuration used by each group.
 
 ## Expected input format
 
@@ -176,17 +190,15 @@ The `spatial_block_id` field is used only for spatial validation and should not 
 
 The public datasets are anonymized demonstration datasets prepared for reviewer verification and code execution.
 
-They are not intended to disclose the exact study area, original coordinate network, original mineral occurrence coordinates, or original GIS layers.
+They are not intended to disclose the exact study area, original coordinate network, original mineral occurrence coordinates, original non-occurrence coordinates, original CRS, UTM zone, coordinate origin, raw GIS layers, or final confidential prospectivity results.
 
-The generated public outputs are example workflow outputs. They should not be interpreted as the final confidential prospectivity results reported in the manuscript.
+The generated public outputs are example workflow outputs. They should not be interpreted as the final results reported in the manuscript.
 
 ## Results folder
 
 Generated outputs are written locally to the `results/` directory when the scripts are executed.
 
 Large GIS-ready output files are not included in this public repository because they may contain spatially sensitive information.
-
-The file `results/hyperparameter_tuning/Table3b_level0_cv_summary.csv` provides the representative Table 3(b) hyperparameter-tuning summary reported for manuscript correspondence.
 
 ## Citation
 
