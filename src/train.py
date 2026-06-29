@@ -24,7 +24,6 @@ G1_FEATURES = [
     "Fault_Densi",
 ]
 
-
 G2_FEATURES = [
     "F1_clr",
     "F4_clr",
