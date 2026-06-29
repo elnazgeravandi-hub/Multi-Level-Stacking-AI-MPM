@@ -128,6 +128,7 @@ def main():
     print("Prediction/test file:", test_path)
     print("Output directory:", output_dir)
     print("Number of predictor variables:", len(feature_cols))
+    print("Feature list:", feature_cols)
     print("==============================\n")
 
     results = run_stacking(
