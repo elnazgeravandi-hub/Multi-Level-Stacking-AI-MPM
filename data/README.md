@@ -47,6 +47,7 @@ data/
 * `y`: anonymized relative y-coordinate
 * `Label`: binary class label
 * selected predictor variables used in the G2 modeling scenario
+* `spatial_block_id`: anonymized spatial grouping variable used to reproduce the spatial block train/validation split
 
 The G2 predictor variables are:
 
@@ -66,6 +67,7 @@ The G2 predictor variables are:
 * `pointid`
 * anonymized relative `x` and `y` coordinates
 * the same G2 predictor variables required for spatial prediction
+* `spatial_block_id`: anonymized spatial grouping variable used for reproducible spatial block assignment
 
 ## Coordinate anonymization
 
@@ -73,8 +75,14 @@ The released `x` and `y` fields do not represent real-world coordinates.
 
 To protect sensitive mineral occurrence locations, the original coordinate origin, CRS, UTM zone, and raw mineral occurrence coordinates are not released. The coordinate network was transformed into a relative local coordinate system before public release.
 
-This anonymization preserves the internal spatial configuration required for spatial block validation and model reproducibility while preventing disclosure of exact mineral occurrence locations.
+This anonymization preserves the internal spatial configuration required for spatial prediction while preventing disclosure of exact mineral occurrence locations.
+
+## Spatial block anonymization
+
+The `spatial_block_id` column is an anonymized grouping variable used only to reproduce the original spatial block train/validation split after converting `x` and `y` to a relative local coordinate system.
+
+The values of `spatial_block_id` are arbitrary sequential identifiers. They do not represent real coordinates, original UTM block codes, CRS information, or any recoverable spatial reference.
 
 ## Important note
 
-Raw GIS layers, original occurrence coordinates, real-world coordinate origins, CRS information, and UTM zone information should not be uploaded to this public repository.
+Raw GIS layers, original occurrence coordinates, real-world coordinate origins, CRS information, UTM zone information, and original spatial block codes should not be uploaded to this public repository.
